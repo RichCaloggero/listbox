@@ -132,18 +132,23 @@ return this.isValidIndex(index)?
 this.children()[index] : undefined;
 } // item
 
-list () {
+pairs () {
 return this.children()
 .map(x => [x.textContent, x.getAttribute("value")]);
-} // list
+} // pairs
 
 text () {
-return this.list().map(x => x[0]);
+return this.pairs().map(x => x[0]);
 } // text
 
 values () {
-return this.list().map(x => x[1]);
+return this.pairs().map(x => x[1]);
 } // values
+
+entries () {
+return this.pairs()
+.map(x => ({text: x[0], value: x[1]}));
+} // entries
 
 focus () {
 if (this.isValidIndex(this.selectedIndex))
