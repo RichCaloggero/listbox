@@ -14,7 +14,7 @@
 const listboxNode = document.querySelector(".listbox");
 const listbox = new Listbox (listboxNode);
 
-["item 1", "item 2", "item 3", "item 4"]
+"integer,real,item 1,another item,<foo>".split(",")
 .forEach(x => listbox.add(x));
 listbox.setFocus(0);
 </script>

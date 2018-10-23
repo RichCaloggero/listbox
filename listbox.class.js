@@ -1,6 +1,7 @@
 class Listbox {
 constructor (element) {
 this.multiple = false;
+this.wrap = false;
 this._selectedIndex = -1;
 this.domNode = element;
 element.setAttribute("role", "listbox");
@@ -9,9 +10,14 @@ element.setAttribute("style", "list-style:none;");
 element.addEventListener ("keydown", (e) => {
 if (this.isEmpty()) return;
 if (e.target === this.getFocus()) {
-console.log("key: ", e.key);
+//console.log("key: ", e.key);
 const command = this._handleKey(e.key);
-if (command) {
+
+if (Number.isInteger(command)) {
+//console.log ("match at index: ", command);
+this.selectedIndex = command;
+} else if (command instanceof Function) {
+//console.log ("command: ", command);
 command.apply(this);
 e.preventDefault();
 } // if
@@ -23,21 +29,21 @@ alert("event target and currently focused item should be the same");
 
 this._keymap = {
 "ArrowDown": () => {
-this.setFocus(this.getFocusIndex()+1);
-}, // "ArrowUp"
+const index = this._index(this.selectedIndex + 1, this.wrap);
+if (this.isValidIndex(index)) this.selectedIndex = index;
+}, // "ArrowDown"
 
 "ArrowUp": () => {
-console.log("command: ArrowDown");
-this.setFocus(this.getFocusIndex() - 1);
+const index = this._index(this.selectedIndex - 1, this.wrap);
+if (this.isValidIndex(index)) this.selectedIndex = index;
 }, // "ArrowDown"
 
 "Home": () => {
-this.setFocus(0);
+this.selectedIndex = 0;
 }, // Home
 
 "End": () => {
-console.log("command: End");
-this.setFocus(this.length-1);
+this.selectedIndex = this.length-1;
 }, // Home
 
 " ": () => {
@@ -55,7 +61,7 @@ if (this.getFocus()) {
 this.getFocus().click();
 } // if
 } // "Enter"
-} // this._keymap
+}; // this._keymap
 } // constructor
 
 children() {
@@ -72,16 +78,23 @@ isValidIndex (index) {
 return index >= 0 && index < this.children().length;
 } // isValidIndex
 
+isValidOption (node) {
+return this.children().indexOf(node) >= 0;
+} // isValidOption
+
+_index (index, wrap = false) {
+if (wrap) {
+if (index < 0) index = this.length - 1;
+if (index >= this.length) index = 0;
+} // wrap
+return this.isValidIndex(index)? index : -1;
+} // _index
+
 get selectedIndex () {return this._selectedIndex;}
 set selectedIndex (index) {
-if (this.isEmpty()) return;
-if (this.wrap)
-index = (index < 0)? this.children.length-1 : 0;
-
-if (this.isValidIndex(index)) {
-this._selectedIndex = index;
-this.setFocus(index);
-} // if
+this._selectedIndex = this._index(index, this.wrap);
+this.focus();
+//console.log ("set selectedIndex: ", this._selectedIndex);
 } // set selectedIndex
 
 
@@ -94,7 +107,7 @@ if (!(option instanceof HTMLElement)) option = this.createOption.apply (this, ar
 option.setAttribute("role", "option");
 option.setAttribute("tabindex", "-1");
 this.domNode.appendChild(option);
-this.setFocus(0);
+this.selectedIndex = 0;
 return this;
 } // add
 
@@ -115,20 +128,30 @@ return this;
 } // remove
 
 item (index) {
-if (this.wrap) {
-if (index < 0) index = this.children().length-1;
-else if (index >= this.children().length) index = 0;
-} // if
-
 return this.isValidIndex(index)?
-this.children(index)
-: undefined;
+this.children()[index] : undefined;
 } // item
 
+list () {
+return this.children()
+.map(x => [x.textContent, x.getAttribute("value")]);
+} // list
 
-setFocus(index) {
-if (this.isValidIndex(index)) {
-const node = this.children()[index];
+text () {
+return this.list().map(x => x[0]);
+} // text
+
+values () {
+return this.list().map(x => x[1]);
+} // values
+
+focus () {
+if (this.isValidIndex(this.selectedIndex))
+this.setFocus(this.children()[this.selectedIndex]);
+} // focus
+
+setFocus(node) {
+if (this.isValidOption(node)) {
 if (!this.multiple) {
 this.unselectAll();
 node.setAttribute("aria-selected", "true");
@@ -164,11 +187,12 @@ this.children().forEach (node => node.setAttribute(
 return this;
 } // unfocusAll
 
-selectedIndex () {
+/*selectedIndex () {
 const focused = this.getFocus();
 if (! focused) return -1;
 return Array.from(this.domNode.children).indexOf(focused);
 } // selectedIndex
+*/
 
 selectedOptions () {
 const node = this.getFocus();
@@ -181,11 +205,37 @@ return node? node.getAttribute("value") : undefined;
 } // value
 
 
+_matchIndex (c) {
+c = c.toLowerCase();
+const matches = this._enumerate()
+.filter (index => this.item(index).textContent.slice(0,1) === c);
+//console.log("matches: ", matches);
+return matches.length === 0? null : matches[0];
+} // _matchIndex
+
+_enumerate () {
+let indicies = [];
+let i = this.selectedIndex;
+
+do {
+i = this._index(i+1, this.wrap);
+if (this.isValidIndex(i)) indicies.push(i);
+} while (this.isValidIndex(i) && i !== this.selectedIndex);
+
+return indicies;
+} // enumerate
+
 _handleKey (key) {
 if (!key || this.isEmpty()) return;
+if (key.length === 1
+&& !/\s/.test(key)
+) {
+//console.log("search for: ", key);
+return this._matchIndex(key);
+} else {
 const command = this._keymap[key];
-console.log ("command: ", command);
 return command? command : undefined;
+} // if
 } // handleKey
 
 } // Listbox
