@@ -19,6 +19,13 @@ this.domNode = element;
 this.container = container;
 this.label = label;
 
+this.children().forEach (node => {
+node.setAttribute("role", "option");
+node.setAttribute("tabindex", "-1");
+}); // forEach
+if (this.length > 0) this.selectedIndex = 0;
+
+
 element.addEventListener ("keydown", (e) => {
 if (this.isEmpty()) return;
 //if (e.target === this.getFocus()) {
