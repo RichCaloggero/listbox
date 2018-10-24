@@ -1,9 +1,10 @@
 class Listbox {
 constructor (element) {
-this.multiple = false;
+this._multiple = false;
 this.wrap = false;
 this._selectedIndex = -1;
 element.setAttribute("role", "listbox");
+element.setAttribute("aria-multiselectable", "false");
 element.setAttribute("style", "list-style:none;");
 const container = document.createElement("div");
 const label = document.createElement("span");
@@ -20,7 +21,7 @@ this.label = label;
 
 element.addEventListener ("keydown", (e) => {
 if (this.isEmpty()) return;
-if (e.target === this.getFocus()) {
+//if (e.target === this.getFocus()) {
 //console.log("key: ", e.key);
 const command = this._handleKey(e.key);
 
@@ -33,9 +34,9 @@ command.apply(this);
 e.preventDefault();
 } // if
 
-} else {
-alert("event target and currently focused item should be the same");
-} // if
+//} else {
+//alert("event target and currently focused item should be the same");
+//} // if
 }); // listen for keyup
 
 this._keymap = {
@@ -60,10 +61,7 @@ this.selectedIndex = this.length-1;
 " ": () => {
 if (this.multiple && this.getFocus()) {
 const selected = this.getFocus().getAttribute("aria-selected");
-this.getFocus().setAttribute(
-"aria-selected",
-selected === "true"? "false" : "true"
-); // setAttribute
+this.getFocus().setAttribute("aria-selected", selected === "true"? "false" : "true");
 } // if
 }, // spaceBar
 
@@ -85,6 +83,19 @@ return this.children().length === 0;
 
 get length () {return this.children().length;}
 
+get multiple () {return this._multiple;}
+set multiple (value) {
+if (value) {
+this._multiple = true;
+this.domNode.setAttribute("aria-multiselectable", "true");
+} else {
+this.unselectAll();
+this._multiple = false;
+this.domNode.setAttribute("aria-multiselectable", "false");
+this.focus();
+} // if
+} // set multiple
+
 isValidIndex (index) {
 return index >= 0 && index < this.children().length;
 } // isValidIndex
@@ -104,8 +115,17 @@ return this.isValidIndex(index)? index : -1;
 get selectedIndex () {return this._selectedIndex;}
 set selectedIndex (index) {
 this._selectedIndex = this._index(index, this.wrap);
-this.focus();
-//console.log ("set selectedIndex: ", this._selectedIndex);
+if (this.isValidIndex(this._selectedIndex)) {
+const node = this.children()[this._selectedIndex];
+if (!this.multiple) {
+this.unselectAll();
+node.setAttribute("aria-selected", "true");
+} // if
+
+this.unfocusAll();
+node.setAttribute("tabindex", "0");
+if (this._isFocusWithin()) node.focus();
+} // if
 } // set selectedIndex
 
 
@@ -163,33 +183,15 @@ return this.pairs()
 
 focus () {
 if (this.isValidIndex(this.selectedIndex)) {
-this.setFocus(this.children()[this.selectedIndex]);
-} else {
-this.getFocus().blur();
-this.unfocusAll();
+this.children()[this.selectedIndex].focus();
 } // if
 } // focus
 
-setFocus(node) {
-if (this.isValidOption(node)) {
-if (!this.multiple) {
-this.unselectAll();
-node.setAttribute("aria-selected", "true");
-} // if
-
-this.unfocusAll();
-node.setAttribute("tabindex", "0");
-node.focus();
-} // if
-} // setFocus
 
 getFocus () {
-return this.domNode.querySelector("[tabindex='0']");
+return this.children()[this.selectedIndex];
 } // getFocus
 
-getFocusIndex () {
-return this.getFocus()? this.indexOf(this.getFocus()) : -1;
-} // getFocusIndex
 
 unselectAll () {
 this.children().forEach (node => node.setAttribute(
@@ -207,22 +209,19 @@ this.children().forEach (node => node.setAttribute(
 return this;
 } // unfocusAll
 
-/*selectedIndex () {
-const focused = this.getFocus();
-if (! focused) return -1;
-return Array.from(this.domNode.children).indexOf(focused);
-} // selectedIndex
-*/
 
 selectedOptions () {
-const node = this.getFocus();
-return node? [node] : [];
+return this.children()
+.filter(x => x.getAttribute("aria-selected") === "true");
 } // selectedOptions
 
-value () {
-const node = this.getFocus();
-return node? node.getAttribute("value") : undefined;
+
+value (returnArray) {
+const val = this.selectedOptions()
+.map(x => x.getAttribute("value")? x.getAttribute("value") : x.textContent);
+return (returnArray || this.multiple)? val : val[0];
 } // value
+
 
 
 _matchIndex (c) {
@@ -257,6 +256,10 @@ const command = this._keymap[key];
 return command? command : undefined;
 } // if
 } // handleKey
+
+_isFocusWithin () {
+return this.domNode.contains(document.activeElement);
+} // focusWithin
 
 } // Listbox
 
