@@ -3,9 +3,20 @@ constructor (element) {
 this.multiple = false;
 this.wrap = false;
 this._selectedIndex = -1;
-this.domNode = element;
 element.setAttribute("role", "listbox");
 element.setAttribute("style", "list-style:none;");
+const container = document.createElement("div");
+const label = document.createElement("span");
+container.appendChild(label);
+element.parentElement.replaceChild(container, element);
+container.appendChild(element);
+label.setAttribute("id", `label-${Math.random().toString()}`);
+element.setAttribute("aria-labelledby", label.getAttribute("id"));
+container.setAttribute("role", "region");
+
+this.domNode = element;
+this.container = container;
+this.label = label;
 
 element.addEventListener ("keydown", (e) => {
 if (this.isEmpty()) return;
@@ -64,7 +75,7 @@ this.getFocus().click();
 }; // this._keymap
 } // constructor
 
-children() {
+children () {
 return Array.from(this.domNode.children);
 } // children
 
@@ -151,8 +162,12 @@ return this.pairs()
 } // entries
 
 focus () {
-if (this.isValidIndex(this.selectedIndex))
+if (this.isValidIndex(this.selectedIndex)) {
 this.setFocus(this.children()[this.selectedIndex]);
+} else {
+this.getFocus().blur();
+this.unfocusAll();
+} // if
 } // focus
 
 setFocus(node) {
