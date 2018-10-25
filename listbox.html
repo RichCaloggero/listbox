@@ -8,7 +8,7 @@
 <h1>Listbox</h1>
 
 <a href="#">dummy link</a>
-<ul class="listbox">
+<ul class="listbox" aria-label="from aria-label in markup">
 <li>first item</li>
 <li>another item</li>
 </ul>
@@ -17,7 +17,7 @@
 <script src="listbox.class.js"></script>
 <script>
 const listboxNode = document.querySelector(".listbox");
-const listbox = new Listbox (listboxNode);
+const listbox = new Listbox (listboxNode, "label from js");
 
 "integer,real,item 1,another item,<foo>".split(",")
 .forEach(x => listbox.add(x));

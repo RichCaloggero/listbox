@@ -1,5 +1,5 @@
 class Listbox {
-constructor (element) {
+constructor (element, _labelText) {
 this._multiple = false;
 this.wrap = false;
 this._selectedIndex = -1;
@@ -8,7 +8,17 @@ element.setAttribute("aria-multiselectable", "false");
 element.setAttribute("style", "list-style:none;");
 const container = document.createElement("div");
 const label = document.createElement("span");
+label.setAttribute("class", "label");
+if (element.hasAttribute("aria-label")) {
+label.textContent = element.getAttribute("aria-label");
+element.removeAttribute("aria-label");
+} // if
+
+if (_labelText) {
+label.textContent += " " + _labelText;
+} // if
 container.appendChild(label);
+
 element.parentElement.replaceChild(container, element);
 container.appendChild(element);
 label.setAttribute("id", `label-${Math.random().toString()}`);
